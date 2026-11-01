@@ -1,6 +1,6 @@
 # MACE Playground — Desmos-style Graphing Calculator
 
-A Desmos-style graphing calculator web app, built end to end by a MACE agent team.
+A Desmos-style graphing calculator web app (Vite + React), built end to end by a MACE agent team.
 
 Type several expressions (`y = sin(x)`, `x^2 + y^2 = 25`, `y = a*x + b`), each draws
 on one shared graph in its own color. Pan and zoom with readable grid and axis
@@ -35,7 +35,9 @@ npm run build
 npm run preview
 ```
 
-## Project layout (to be finalized on integration)
+## Project layout
+
+App entry is `src/App.jsx`.
 
 - `src/math/` — `parseExpression` / `evaluate` plus automated tests
 - `src/graph/` — React graph canvas, pan/zoom, grid and labels

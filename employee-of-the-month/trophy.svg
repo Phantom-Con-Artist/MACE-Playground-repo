@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 130" role="img" aria-label="Employee of the Month trophy">
+  <title>Employee of the Month trophy</title>
+  <!-- GPU note: flat SVG, no filter blur. Animate only transform/opacity so the compositor handles it. -->
+  <g class="trophy-cup">
+    <path d="M30 12 h60 v30 c0 22 -13 36 -30 36 c-17 0 -30 -14 -30 -36 z" fill="#e9b923" stroke="#6b4e04" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M30 20 h-14 c0 20 8 30 22 32 M90 20 h14 c0 20 -8 30 -22 32" fill="none" stroke="#6b4e04" stroke-width="5" stroke-linecap="round"/>
+    <ellipse cx="60" cy="14" rx="32" ry="6" fill="#f6e8b8" stroke="#6b4e04" stroke-width="3"/>
+    <path d="M60 78 v14 M46 104 h28 l6 12 h-40 z" fill="#e9b923" stroke="#6b4e04" stroke-width="3" stroke-linejoin="round"/>
+    <rect x="38" y="116" width="44" height="10" rx="2" fill="#1c1e21"/>
+    <text x="60" y="124" text-anchor="middle" font-size="7" font-family="system-ui,sans-serif" font-weight="700" fill="#f6e8b8" letter-spacing="0.5">#1</text>
+    <path d="M52 26 l3 6 7 1 -5 5 1 7 -6 -3 -6 3 1 -7 -5 -5 7 -1 z" fill="#fff8dd" stroke="#6b4e04" stroke-width="1.5" stroke-linejoin="round"/>
+  </g>
+  <style>
+    .trophy-cup { transform-box: fill-box; transform-origin: center bottom; }
+    @media (prefers-reduced-motion: no-preference) {
+      .trophy-cup { animation: trophy-bob 3s ease-in-out infinite; }
+      @keyframes trophy-bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+    }
+  </style>
+</svg>

@@ -1,8 +1,9 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import AppShell from './components/AppShell';
-import GraphCanvas from './components/GraphCanvas';
+import GraphCanvas from './graph/GraphCanvas';
 import ErrorBoundary from './components/ErrorBoundary';
-import { parseExpression, extractVariables } from './math/index';
+import { tryParseExpression, evaluate } from './math/index';
+import { syncSliders, slidersToScope, updateSliderValue } from './state/sliders';
 
 const PALETTE = [
   '#2563eb', // Blue
@@ -20,42 +21,36 @@ const INITIAL_ROWS = [
   { id: '3', expression: 'y = a*x + b', color: PALETTE[2], visible: true },
 ];
 
-const DEFAULT_VIEW = {
-  xMin: -10,
-  xMax: 10,
-  yMin: -10,
-  yMax: 10,
-};
-
 export default function App() {
   const [rows, setRows] = useState(INITIAL_ROWS);
   const [activeId, setActiveId] = useState('1');
   const [errors, setErrors] = useState({});
-  const [variables, setVariables] = useState({ a: 1, b: 0 });
-  const [view, setView] = useState(DEFAULT_VIEW);
+  const [sliders, setSliders] = useState({});
+  const canvasRef = useRef(null);
 
-  // Validate an individual expression row
+  // Sync sliders whenever rows change
+  useEffect(() => {
+    setSliders((prev) => syncSliders(prev, rows, { pruneUnused: true, includeHidden: true }));
+  }, [rows]);
+
+  // Validate expression on change
   const validateExpression = useCallback((id, exprStr) => {
     if (!exprStr.trim()) {
       setErrors((prev) => ({ ...prev, [id]: 'Expression cannot be empty' }));
       return false;
     }
-    try {
-      parseExpression(exprStr);
-      setErrors((prev) => {
-        if (!prev[id]) return prev;
-        const next = { ...prev };
-        delete next[id];
-        return next;
-      });
-      return true;
-    } catch (err) {
-      setErrors((prev) => ({
-        ...prev,
-        [id]: err.message || 'Invalid expression syntax',
-      }));
+    const result = tryParseExpression(exprStr);
+    if (!result.success) {
+      setErrors((prev) => ({ ...prev, [id]: result.error }));
       return false;
     }
+    setErrors((prev) => {
+      if (!prev[id]) return prev;
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+    return true;
   }, []);
 
   // Update expression text and run validation
@@ -101,95 +96,53 @@ export default function App() {
     );
   }, []);
 
-  // Set runtime row error safely from canvas
-  const handleRowError = useCallback((id, errorMsg) => {
-    setErrors((prev) => {
-      if (prev[id] === errorMsg) return prev;
-      return { ...prev, [id]: errorMsg };
-    });
-  }, []);
+  // Map sliders to evaluation scope
+  const variableScope = useMemo(() => slidersToScope(sliders), [sliders]);
 
-  // Auto-detect free variables across valid expressions
-  const detectedVariables = useMemo(() => {
-    const varSet = new Set();
-    rows.forEach((row) => {
-      if (!row.expression.trim()) return;
-      const params = extractVariables(row.expression);
-      params.forEach((p) => varSet.add(p));
-    });
-    return Array.from(varSet).sort();
-  }, [rows]);
-
-  // Update slider variable value
-  const handleVariableChange = useCallback((name, value) => {
-    const num = parseFloat(value);
-    setVariables((prev) => ({ ...prev, [name]: Number.isFinite(num) ? num : 0 }));
-  }, []);
-
-  // Zoom controls
+  // Zoom handlers triggering GraphCanvas imperative methods
   const handleZoomIn = useCallback(() => {
-    setView((v) => {
-      const cx = (v.xMin + v.xMax) / 2;
-      const cy = (v.yMin + v.yMax) / 2;
-      const spanX = (v.xMax - v.xMin) * 0.8;
-      const spanY = (v.yMax - v.yMin) * 0.8;
-      return {
-        xMin: cx - spanX / 2,
-        xMax: cx + spanX / 2,
-        yMin: cy - spanY / 2,
-        yMax: cy + spanY / 2,
-      };
-    });
+    canvasRef.current?.zoomIn?.();
   }, []);
 
   const handleZoomOut = useCallback(() => {
-    setView((v) => {
-      const cx = (v.xMin + v.xMax) / 2;
-      const cy = (v.yMin + v.yMax) / 2;
-      const spanX = (v.xMax - v.xMin) * 1.25;
-      const spanY = (v.yMax - v.yMin) * 1.25;
-      return {
-        xMin: cx - spanX / 2,
-        xMax: cx + spanX / 2,
-        yMin: cy - spanY / 2,
-        yMax: cy + spanY / 2,
-      };
-    });
+    canvasRef.current?.zoomOut?.();
   }, []);
 
   const handleZoomReset = useCallback(() => {
-    setView(DEFAULT_VIEW);
+    canvasRef.current?.resetView?.();
   }, []);
 
   // Render parameter sliders
   const renderParams = useCallback(() => {
-    if (detectedVariables.length === 0) return null;
+    const sliderList = Object.values(sliders);
+    if (sliderList.length === 0) return null;
 
     return (
       <div className="calc-params" aria-label="Variable Sliders">
-        {detectedVariables.map((param) => {
-          const val = variables[param] !== undefined ? variables[param] : 1;
-          return (
-            <div key={param} className="param-row">
-              <label htmlFor={`slider-${param}`}>{param} =</label>
-              <input
-                id={`slider-${param}`}
-                type="range"
-                className="param-slider"
-                min="-10"
-                max="10"
-                step="0.1"
-                value={val}
-                aria-label={`Parameter ${param}`}
-                onChange={(e) => handleVariableChange(param, e.target.value)}
-              />
-              <output htmlFor={`slider-${param}`}>{Number(val.toFixed(2))}</output>
-            </div>
-          );
-        })}
+        {sliderList.map((slider) => (
+          <div key={slider.id} className="param-row">
+            <label htmlFor={`slider-${slider.name}`}>{slider.name} =</label>
+            <input
+              id={`slider-${slider.name}`}
+              type="range"
+              className="param-slider"
+              min={slider.min}
+              max={slider.max}
+              step={slider.step}
+              value={slider.value}
+              aria-label={`Parameter ${slider.name}`}
+              onChange={(e) => {
+                const nextVal = parseFloat(e.target.value);
+                const updated = updateSliderValue(slider, Number.isFinite(nextVal) ? nextVal : 0);
+                setSliders((prev) => ({ ...prev, [slider.name]: updated }));
+              }}
+            />
+            <output htmlFor={`slider-${slider.name}`}>{Number(slider.value.toFixed(2))}</output>
+          </div>
+        ))}
       </div>
     );
-  }, [detectedVariables, variables, handleVariableChange]);
+  }, [sliders]);
 
   // Render graph canvas inside safe error boundary
   const renderCanvas = useCallback(
@@ -202,15 +155,16 @@ export default function App() {
         }
       >
         <GraphCanvas
-          rows={rows}
-          variables={variables}
-          view={view}
-          onViewChange={setView}
-          onRowError={handleRowError}
+          ref={canvasRef}
+          expressions={rows}
+          variables={variableScope}
+          customEvaluator={(expr, scope) => evaluate(expr, scope)}
+          showControls={false}
+          showCoordinates={true}
         />
       </ErrorBoundary>
     ),
-    [rows, variables, view, handleRowError]
+    [rows, variableScope]
   );
 
   return (

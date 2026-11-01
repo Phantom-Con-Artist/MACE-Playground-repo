@@ -1,200 +1,222 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
 import type { GraphCanvasProps } from './types';
 import { renderGridAndAxes } from './gridRenderer';
 import { renderCurves } from './curveRenderer';
 import { useGraphInteraction } from './interaction';
 
-export const GraphCanvas: React.FC<GraphCanvasProps> = ({
-  expressions = [],
-  variables = {},
-  className = '',
-  theme,
-  initialCenterX = 0,
-  initialCenterY = 0,
-  initialPixelsPerUnit = 40,
-  onViewportChange,
-  onHoverPoint,
-  customEvaluator,
-  showControls = true,
-  showCoordinates = true,
-}) => {
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+export interface GraphCanvasHandle {
+  zoomIn: () => void;
+  zoomOut: () => void;
+  resetView: () => void;
+}
 
-  const {
-    viewport,
-    setDimensions,
-    hoverPoint,
-    isDragging,
-    handlers,
-    zoomIn,
-    zoomOut,
-    resetView,
-  } = useGraphInteraction({
-    initialCenterX,
-    initialCenterY,
-    initialPixelsPerUnit,
-    onViewportChange,
-    onHoverPoint,
-  });
+export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
+  (
+    {
+      expressions = [],
+      variables = {},
+      className = '',
+      theme,
+      initialCenterX = 0,
+      initialCenterY = 0,
+      initialPixelsPerUnit = 40,
+      onViewportChange,
+      onHoverPoint,
+      customEvaluator,
+      showControls = false,
+      showCoordinates = true,
+    },
+    ref
+  ) => {
+    const containerRef = useRef<HTMLDivElement | null>(null);
+    const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  // Track container resize
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        const { width, height } = entry.contentRect;
-        if (width > 0 && height > 0) {
-          setDimensions(Math.floor(width), Math.floor(height));
-        }
-      }
+    const {
+      viewport,
+      setDimensions,
+      hoverPoint,
+      isDragging,
+      handlers,
+      zoomIn,
+      zoomOut,
+      resetView,
+    } = useGraphInteraction({
+      initialCenterX,
+      initialCenterY,
+      initialPixelsPerUnit,
+      onViewportChange,
+      onHoverPoint,
     });
 
-    observer.observe(container);
-    return () => observer.disconnect();
-  }, [setDimensions]);
+    useImperativeHandle(
+      ref,
+      () => ({
+        zoomIn,
+        zoomOut,
+        resetView,
+      }),
+      [zoomIn, zoomOut, resetView]
+    );
 
-  // Main canvas render loop
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    // Track container resize
+    useEffect(() => {
+      const container = containerRef.current;
+      if (!container) return;
 
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+      const observer = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          const { width, height } = entry.contentRect;
+          if (width > 0 && height > 0) {
+            setDimensions(Math.floor(width), Math.floor(height));
+          }
+        }
+      });
 
-    let animId: number;
+      observer.observe(container);
+      return () => observer.disconnect();
+    }, [setDimensions]);
 
-    const draw = () => {
-      const dpr = window.devicePixelRatio || 1;
-      const width = viewport.width;
-      const height = viewport.height;
+    // Main canvas render loop
+    useEffect(() => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
 
-      // Adjust internal canvas buffer dimensions for HiDPI
-      const displayWidth = Math.round(width * dpr);
-      const displayHeight = Math.round(height * dpr);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
 
-      if (canvas.width !== displayWidth || canvas.height !== displayHeight) {
-        canvas.width = displayWidth;
-        canvas.height = displayHeight;
-      }
+      let animId: number;
 
-      ctx.save();
-      ctx.scale(dpr, dpr);
+      const draw = () => {
+        const dpr = window.devicePixelRatio || 1;
+        const width = viewport.width;
+        const height = viewport.height;
 
-      // 1. Grid & readable axes
-      renderGridAndAxes(ctx, viewport, theme);
+        // Adjust internal canvas buffer dimensions for HiDPI
+        const displayWidth = Math.round(width * dpr);
+        const displayHeight = Math.round(height * dpr);
 
-      // 2. Expressions curves
-      renderCurves(ctx, expressions, variables, viewport, customEvaluator);
+        if (canvas.width !== displayWidth || canvas.height !== displayHeight) {
+          canvas.width = displayWidth;
+          canvas.height = displayHeight;
+        }
 
-      ctx.restore();
-    };
+        ctx.save();
+        ctx.scale(dpr, dpr);
 
-    animId = requestAnimationFrame(draw);
-    return () => cancelAnimationFrame(animId);
-  }, [viewport, expressions, variables, theme, customEvaluator]);
+        // 1. Grid & readable axes
+        renderGridAndAxes(ctx, viewport, theme);
 
-  return (
-    <div
-      ref={containerRef}
-      className={`graph-canvas-container ${className}`.trim()}
-      style={{
-        position: 'relative',
-        width: '100%',
-        height: '100%',
-        minHeight: '300px',
-        overflow: 'hidden',
-        userSelect: 'none',
-        background: theme?.backgroundColor || '#ffffff',
-      }}
-    >
-      <canvas
-        ref={canvasRef}
+        // 2. Expressions curves
+        renderCurves(ctx, expressions, variables, viewport, customEvaluator);
+
+        ctx.restore();
+      };
+
+      animId = requestAnimationFrame(draw);
+      return () => cancelAnimationFrame(animId);
+    }, [viewport, expressions, variables, theme, customEvaluator]);
+
+    return (
+      <div
+        ref={containerRef}
+        className={`graph-canvas-container ${className}`.trim()}
         style={{
-          display: 'block',
+          position: 'relative',
           width: '100%',
           height: '100%',
-          cursor: isDragging ? 'grabbing' : 'grab',
-          touchAction: 'none',
+          minHeight: '300px',
+          overflow: 'hidden',
+          userSelect: 'none',
+          background: theme?.backgroundColor || '#ffffff',
         }}
-        onPointerDown={handlers.onPointerDown}
-        onPointerMove={handlers.onPointerMove}
-        onPointerUp={handlers.onPointerUp}
-        onPointerCancel={handlers.onPointerCancel}
-        onWheel={handlers.onWheel}
-        onMouseLeave={handlers.onMouseLeave}
-      />
-
-      {/* Floating Controls (Zoom In, Zoom Out, Reset) */}
-      {showControls && (
-        <div
+      >
+        <canvas
+          ref={canvasRef}
+          className="calc-canvas"
           style={{
-            position: 'absolute',
-            right: 16,
-            bottom: 16,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 6,
-            zIndex: 10,
+            display: 'block',
+            width: '100%',
+            height: '100%',
+            cursor: isDragging ? 'grabbing' : 'grab',
+            touchAction: 'none',
           }}
-        >
-          <button
-            type="button"
-            title="Zoom In"
-            aria-label="Zoom in"
-            onClick={zoomIn}
-            style={buttonStyle}
-          >
-            +
-          </button>
-          <button
-            type="button"
-            title="Zoom Out"
-            aria-label="Zoom out"
-            onClick={zoomOut}
-            style={buttonStyle}
-          >
-            −
-          </button>
-          <button
-            type="button"
-            title="Reset View"
-            aria-label="Reset view"
-            onClick={resetView}
-            style={buttonStyle}
-          >
-            ⌂
-          </button>
-        </div>
-      )}
+          onPointerDown={handlers.onPointerDown}
+          onPointerMove={handlers.onPointerMove}
+          onPointerUp={handlers.onPointerUp}
+          onPointerCancel={handlers.onPointerCancel}
+          onWheel={handlers.onWheel}
+          onMouseLeave={handlers.onMouseLeave}
+        />
 
-      {/* Hover Coordinates Readout Badge */}
-      {showCoordinates && hoverPoint && (
-        <div
-          style={{
-            position: 'absolute',
-            left: 14,
-            bottom: 14,
-            padding: '4px 8px',
-            background: 'rgba(255, 255, 255, 0.88)',
-            border: '1px solid #e2e8f0',
-            borderRadius: 6,
-            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)',
-            fontSize: '11px',
-            fontFamily: 'monospace',
-            color: '#334155',
-            pointerEvents: 'none',
-            zIndex: 10,
-          }}
-        >
-          ({hoverPoint.x.toFixed(3)}, {hoverPoint.y.toFixed(3)})
-        </div>
-      )}
-    </div>
-  );
-};
+        {/* Floating Controls if requested */}
+        {showControls && (
+          <div
+            style={{
+              position: 'absolute',
+              right: 16,
+              bottom: 16,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 6,
+              zIndex: 10,
+            }}
+          >
+            <button
+              type="button"
+              title="Zoom In"
+              aria-label="Zoom in"
+              onClick={zoomIn}
+              style={buttonStyle}
+            >
+              +
+            </button>
+            <button
+              type="button"
+              title="Zoom Out"
+              aria-label="Zoom out"
+              onClick={zoomOut}
+              style={buttonStyle}
+            >
+              −
+            </button>
+            <button
+              type="button"
+              title="Reset View"
+              aria-label="Reset view"
+              onClick={resetView}
+              style={buttonStyle}
+            >
+              ⌂
+            </button>
+          </div>
+        )}
+
+        {/* Hover Coordinates Readout Badge */}
+        {showCoordinates && hoverPoint && (
+          <div
+            style={{
+              position: 'absolute',
+              left: 14,
+              bottom: 14,
+              padding: '4px 8px',
+              background: 'rgba(255, 255, 255, 0.88)',
+              border: '1px solid #e2e8f0',
+              borderRadius: 6,
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)',
+              fontSize: '11px',
+              fontFamily: 'monospace',
+              color: '#334155',
+              pointerEvents: 'none',
+              zIndex: 10,
+            }}
+          >
+            ({hoverPoint.x.toFixed(3)}, {hoverPoint.y.toFixed(3)})
+          </div>
+        )}
+      </div>
+    );
+  }
+);
 
 const buttonStyle: React.CSSProperties = {
   width: 32,
@@ -213,3 +235,5 @@ const buttonStyle: React.CSSProperties = {
   padding: 0,
   transition: 'background 0.15s ease, transform 0.1s ease',
 };
+
+export default GraphCanvas;

@@ -1,0 +1,282 @@
+/**
+ * Responsive application shell for the graphing calculator.
+ *
+ * Structure (owned by visual design):
+ *   .calc-app > .calc-header + .calc-main > .calc-side + .calc-stage
+ *   .calc-stage > canvas.calc-canvas + .calc-zoom (overlay controls)
+ *
+ * Integration points owned by others (unstyled hooks kept stable):
+ *   - canvas rendering + pan/zoom: @agy (uses .calc-canvas, .calc-zoom)
+ *   - expression parsing/eval: @agy-2 (no DOM hooks needed)
+ *   - sliders: @agy-3 (renders into .calc-params, styles below)
+ *   - errors/integration: @agy-4 (sets data-error="true" + .calc-error)
+ *
+ * Breakpoints: >=1024px side-by-side, 761-1023 narrow sidebar,
+ * <=760px stacked (graph first, list below), 320px minimum supported.
+ */
+
+.calc-app {
+  display: grid;
+  grid-template-rows: var(--calc-header-h) 1fr;
+  height: 100dvh;
+  background: var(--calc-app-bg);
+  color: var(--calc-ink);
+  font-family: var(--calc-font-ui);
+}
+
+.calc-header {
+  display: flex;
+  align-items: center;
+  gap: var(--calc-space-3);
+  padding: 0 var(--calc-space-4);
+  background: var(--calc-ink);
+  color: #f4f5f6;
+}
+
+.calc-header h1 {
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.calc-header .calc-hint {
+  margin-left: auto;
+  font-size: 12px;
+  color: #b9bec6;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.calc-main {
+  display: grid;
+  grid-template-columns: var(--calc-side-w) 1fr;
+  min-height: 0;
+}
+
+.calc-side {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--calc-paper);
+  border-right: 1px solid var(--calc-line);
+}
+
+.calc-side-scroll {
+  overflow-y: auto;
+  padding: var(--calc-space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--calc-space-2);
+}
+
+.calc-side-footer {
+  border-top: 1px solid var(--calc-line-soft);
+  padding: var(--calc-space-2) var(--calc-space-3);
+  display: flex;
+  gap: var(--calc-space-2);
+}
+
+.calc-stage {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  background: var(--calc-graph-bg);
+}
+
+.calc-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+}
+
+.calc-zoom {
+  position: absolute;
+  right: var(--calc-space-3);
+  bottom: var(--calc-space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--calc-space-1);
+}
+
+.calc-zoom button {
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--calc-line);
+  border-radius: var(--calc-r-control);
+  background: var(--calc-paper);
+  color: var(--calc-ink);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.calc-zoom button:hover {
+  border-color: var(--calc-ink-faint);
+}
+
+/* Expression rows: color dot + input + visibility toggle.
+   Row shape: {id, expression, color, visible} (shared contract). */
+.expr-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--calc-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.expr-row {
+  display: grid;
+  grid-template-columns: 10px 1fr auto;
+  gap: var(--calc-space-2);
+  align-items: center;
+  border: 1px solid var(--calc-line);
+  border-radius: var(--calc-r-row);
+  padding: var(--calc-space-2);
+  background: var(--calc-paper);
+}
+
+.expr-row[data-active="true"] {
+  border-color: var(--calc-ink-faint);
+}
+
+.expr-row[data-error="true"] {
+  border-color: #b3261e;
+  background: #fdf3f2;
+}
+
+.expr-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--expr-color, var(--calc-c1));
+}
+
+.expr-input {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--calc-ink);
+  font-family: var(--calc-font-math);
+  font-size: 14px;
+  padding: 2px 0;
+}
+
+.expr-input:focus {
+  outline: none;
+}
+
+.expr-row:focus-within {
+  border-color: var(--calc-focus);
+}
+
+.calc-error {
+  grid-column: 1 / -1;
+  font-size: 12px;
+  color: #8f1d17;
+  font-family: var(--calc-font-math);
+  overflow-wrap: anywhere;
+}
+
+/* Parameter sliders (@agy-3 renders into .calc-params) */
+.calc-params {
+  display: flex;
+  flex-direction: column;
+  gap: var(--calc-space-2);
+  padding: var(--calc-space-2) var(--calc-space-3);
+  border-top: 1px solid var(--calc-line-soft);
+}
+
+.param-row {
+  display: grid;
+  grid-template-columns: 24px 1fr 56px;
+  gap: var(--calc-space-2);
+  align-items: center;
+  font-family: var(--calc-font-math);
+  font-size: 13px;
+}
+
+.param-row output {
+  text-align: right;
+  color: var(--calc-ink-soft);
+}
+
+input[type="range"].param-slider {
+  width: 100%;
+  accent-color: var(--calc-accent);
+}
+
+/* Buttons */
+.calc-btn {
+  border: 1px solid var(--calc-line);
+  border-radius: var(--calc-r-control);
+  background: var(--calc-paper);
+  color: var(--calc-ink);
+  font-size: 13px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.calc-btn-primary {
+  background: var(--calc-accent);
+  border-color: var(--calc-accent);
+  color: var(--calc-accent-ink);
+}
+
+.calc-btn:focus-visible,
+.calc-zoom button:focus-visible,
+.expr-input:focus-visible {
+  outline: 2px solid var(--calc-focus);
+  outline-offset: 1px;
+}
+
+/* Narrow tablet */
+@media (max-width: 1023px) and (min-width: 761px) {
+  .calc-main {
+    grid-template-columns: var(--calc-side-w-narrow) 1fr;
+  }
+}
+
+/* Phone: graph on top, expression list below */
+@media (max-width: 760px) {
+  .calc-main {
+    grid-template-columns: 1fr;
+    grid-template-rows: 46dvh 1fr;
+  }
+
+  .calc-side {
+    border-right: 0;
+    border-top: 1px solid var(--calc-line);
+    min-height: 0;
+  }
+
+  .calc-header .calc-hint {
+    display: none;
+  }
+}
+
+/* Smallest supported width */
+@media (max-width: 380px) {
+  .calc-side-scroll {
+    padding: var(--calc-space-2);
+  }
+
+  .param-row {
+    grid-template-columns: 20px 1fr 48px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .calc-app * {
+    transition: none;
+    animation: none;
+  }
+}

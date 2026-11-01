@@ -1,0 +1,60 @@
+/**
+ * Design tokens for the Desmos-style graphing calculator.
+ *
+ * Drop-in CSS custom properties. No build step, no dependencies.
+ * Canvas/grid rendering stays with @agy; these tokens only style
+ * the surrounding instrument (sidebar, rows, toolbar, overlays).
+ *
+ * Palette note: per-expression curve colors live here as defaults
+ * so every row has its own color even before JS assigns one.
+ */
+
+:root {
+  /* Ink and paper (near-black / near-white, never pure) */
+  --calc-ink: #1c1e21;
+  --calc-ink-soft: #4b5057;
+  --calc-ink-faint: #6b7078;
+  --calc-paper: #ffffff;
+  --calc-app-bg: #eceef1;
+  --calc-line: #d8dbe0;
+  --calc-line-soft: #e6e8ec;
+
+  /* Graph paper (canvas draws grid/axes over this base) */
+  --calc-graph-bg: #ffffff;
+  --calc-graph-grid: #e3e6eb;
+  --calc-graph-axes: #3c4046;
+
+  /* Chrome accent: deep teal for the instrument frame */
+  --calc-accent: #0b5c55;
+  --calc-accent-ink: #ffffff;
+  --calc-focus: #0b5c55;
+
+  /* Expression curve palette (row default colors) */
+  --calc-c1: #1a73e8;
+  --calc-c2: #d93025;
+  --calc-c3: #188038;
+  --calc-c4: #e37400;
+  --calc-c5: #00796b;
+  --calc-c6: #c2185b;
+
+  /* Type: system UI for chrome, monospace for math input */
+  --calc-font-ui: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --calc-font-math: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+
+  /* Radii: small functional steps, deliberately not uniform */
+  --calc-r-row: 6px;
+  --calc-r-panel: 8px;
+  --calc-r-control: 6px;
+
+  /* Spacing */
+  --calc-space-1: 4px;
+  --calc-space-2: 8px;
+  --calc-space-3: 12px;
+  --calc-space-4: 16px;
+  --calc-space-5: 24px;
+
+  /* Shell dimensions */
+  --calc-header-h: 48px;
+  --calc-side-w: 320px;
+  --calc-side-w-narrow: 280px;
+}

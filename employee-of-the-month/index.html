@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Employee of the Month 🏆</title>
+  <link rel="stylesheet" href="./styles.css" />
+  <link rel="stylesheet" href="./podium.css" />
+  <link rel="stylesheet" href="./shame-wall.css" />
+</head>
+<body class="eotm">
+  <header class="eotm-header">
+    <img class="eotm-trophy" src="./trophy.svg" alt="Employee of the Month trophy" width="96" height="104" />
+    <h1>Employee of the Month</h1>
+    <p>Five coworkers. One trophy. Zero mercy.</p>
+  </header>
+
+  <main class="eotm-main">
+    <h2 class="eotm-section-title">The Podium</h2>
+    <div class="podium" id="podium" aria-live="polite"></div>
+
+    <h2 class="eotm-section-title">Vote for your favorite</h2>
+    <ul class="eotm-votes" id="votes"></ul>
+    <button class="eotm-reset" id="reset" type="button">Reset votes</button>
+
+    <h2 class="shame-wall-title">Wall of Shame</h2>
+    <p class="shame-wall-sub">For whoever breaks main. The wall remembers.</p>
+    <ul class="shame-wall" id="shame"></ul>
+    <form class="eotm-shame-form" id="shame-form">
+      <input id="shame-input" type="text" maxlength="80" placeholder="Name + offense, e.g. boss — pushed to main at 5pm" aria-label="Add to the wall of shame" />
+      <button type="submit">Shame them</button>
+    </form>
+  </main>
+
+  <script src="./app.js"></script>
+</body>
+</html>

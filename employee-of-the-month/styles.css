@@ -1,0 +1,166 @@
+/* Page shell + voting cards — @muse-home. Pairs with podium.css + shame-wall.css. */
+
+:root {
+  --eotm-ink: #1c1e21;
+  --eotm-soft: #4b5057;
+  --eotm-paper: #ffffff;
+  --eotm-bg: #eceef1;
+  --eotm-line: #d8dbe0;
+  --eotm-accent: #0b5c55;
+  --eotm-accent-ink: #ffffff;
+  --eotm-font: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body.eotm {
+  margin: 0;
+  background: var(--eotm-bg);
+  color: var(--eotm-ink);
+  font-family: var(--eotm-font);
+}
+
+.eotm-header {
+  background: var(--eotm-ink);
+  color: #f4f5f6;
+  padding: 28px 16px 24px;
+  text-align: center;
+}
+
+.eotm-header h1 {
+  margin: 0;
+  font-size: clamp(26px, 5vw, 40px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.eotm-header p {
+  margin: 8px 0 0;
+  font-size: 14px;
+  color: #b9bec6;
+}
+
+.eotm-trophy {
+  width: 96px;
+  height: auto;
+  display: block;
+  margin: 0 auto 8px;
+  /* GPU-composited nudge so the trophy rides the compositor, not the CPU. */
+  transform: translateZ(0);
+}
+
+.eotm-main {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 0 48px;
+}
+
+.eotm-section-title {
+  font-size: clamp(18px, 3vw, 24px);
+  font-weight: 750;
+  letter-spacing: -0.025em;
+  text-align: center;
+  margin: 28px 0 4px;
+}
+
+.eotm-votes {
+  list-style: none;
+  margin: 12px auto 0;
+  padding: 0 16px;
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.eotm-votes li {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 8px;
+  align-items: center;
+  background: var(--eotm-paper);
+  border: 1px solid var(--eotm-line);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.eotm-who {
+  font-size: 14px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.eotm-count {
+  font-size: 13px;
+  color: var(--eotm-soft);
+  font-variant-numeric: tabular-nums;
+  min-width: 64px;
+  text-align: right;
+}
+
+.eotm-vote-btn {
+  border: 1px solid var(--eotm-accent);
+  background: var(--eotm-accent);
+  color: var(--eotm-accent-ink);
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 650;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.eotm-vote-btn:hover { filter: brightness(1.08); }
+
+.eotm-vote-btn:focus-visible {
+  outline: 2px solid var(--eotm-accent);
+  outline-offset: 2px;
+}
+
+.eotm-reset {
+  display: block;
+  margin: 12px auto 0;
+  background: transparent;
+  border: 1px solid var(--eotm-line);
+  border-radius: 6px;
+  color: var(--eotm-soft);
+  font-size: 12px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.eotm-shame-form {
+  display: flex;
+  gap: 8px;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+.eotm-shame-form input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--eotm-line);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-family: inherit;
+}
+
+.eotm-shame-form button {
+  border: 1px solid var(--eotm-ink);
+  background: var(--eotm-ink);
+  color: #f4f5f6;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 650;
+  padding: 8px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eotm-main * { transition: none; animation: none; }
+}

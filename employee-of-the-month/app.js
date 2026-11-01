@@ -68,11 +68,90 @@ function saveShame(list) {
   }
 }
 
+function launchConfetti(candidateName) {
+  const canvas = document.getElementById('confetti-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  const banner = document.getElementById('confetti-banner');
+  if (banner) {
+    banner.textContent = `🎉 10 VOTES HIT! ${candidateName ? candidateName + ' UNLOCKED THE TROPHY!' : ''} 🏆`;
+    banner.style.display = 'block';
+    setTimeout(() => { banner.style.display = 'none'; }, 4000);
+  }
+
+  const particles = [];
+  const colors = ['#f59e0b', '#ef4444', '#3b82f6', '#10b981', '#8b5cf6', '#ec4899', '#facc15'];
+
+  for (let i = 0; i < 150; i++) {
+    particles.push({
+      x: canvas.width / 2 + (Math.random() - 0.5) * 200,
+      y: canvas.height * 0.4 + (Math.random() - 0.5) * 50,
+      vx: (Math.random() - 0.5) * 16,
+      vy: Math.random() * -14 - 4,
+      size: Math.random() * 8 + 6,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      rotation: Math.random() * 360,
+      vRot: (Math.random() - 0.5) * 12,
+      opacity: 1
+    });
+  }
+
+  let animationFrame;
+  let startTime = Date.now();
+
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const elapsed = Date.now() - startTime;
+    let alive = false;
+
+    particles.forEach(p => {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.35;
+      p.vx *= 0.99;
+      p.rotation += p.vRot;
+      if (elapsed > 2000) {
+        p.opacity -= 0.015;
+      }
+
+      if (p.opacity > 0 && p.y < canvas.height + 50) {
+        alive = true;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate((p.rotation * Math.PI) / 180);
+        ctx.globalAlpha = Math.max(0, p.opacity);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+        ctx.restore();
+      }
+    });
+
+    if (alive && elapsed < 4000) {
+      animationFrame = requestAnimationFrame(animate);
+    } else {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      cancelAnimationFrame(animationFrame);
+    }
+  }
+
+  animate();
+}
+window.launchConfetti = launchConfetti;
+
 function castVote(candidateId) {
   const votes = getVotes();
-  votes[candidateId] = (votes[candidateId] || 0) + 1;
+  const prev = votes[candidateId] || 0;
+  votes[candidateId] = prev + 1;
   saveVotes(votes);
   renderAll();
+
+  if (votes[candidateId] === 10) {
+    const candidate = CANDIDATES.find(c => c.id === candidateId);
+    launchConfetti(candidate ? candidate.handle : candidateId);
+  }
 }
 
 function renderPodium(votes) {

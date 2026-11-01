@@ -1,0 +1,9 @@
+{
+  "name": "desmos-graphing-calculator",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test --experimental-strip-types tests/math.test.ts"
+  }
+}
